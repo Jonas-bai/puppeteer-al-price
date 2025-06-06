@@ -1,0 +1,13 @@
+{
+  "webhookUrl": "https://o0squm2ngqo-dev7.aedev.feishuapp.cn/ae/api/v1/automation/namespaces/package_0e79a5__c/events/http/automation_e0ad7046117",
+  "webhookToken": "6117b376493",
+  "alertWebhookUrl": "https://o0squm2ngqo-dev7.aedev.feishuapp.cn/ae/api/v1/automation/namespaces/package_0e79a5__c/events/http/automation_45137a6662d",
+  "alertWebhookToken": "6117b376493",
+  "tasks": [
+    {
+      "name": "A00铝",
+      "url": "https://www.ccmn.cn/",
+      "selector": "A00铝"
+    }
+  ]
+}

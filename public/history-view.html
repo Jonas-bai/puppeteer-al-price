@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>历史数据查询</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .filter { margin-bottom: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #f5f5f5; }
+    button { margin-left: 10px; }
+    #chart { width: 100%; height: 400px; margin-top: 30px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+<body>
+  <h1>历史数据查询</h1>
+  <div class="filter">
+    <label>起始日期: <input type="date" id="startDate"></label>
+    <label>结束日期: <input type="date" id="endDate"></label>
+    <label>品名: <input type="text" id="name" placeholder="如A00铝"></label>
+    <button id="queryBtn">查询</button>
+    <button id="exportBtn">导出CSV</button>
+  </div>
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>ID</th><th>品名</th><th>区间</th><th>均价</th><th>涨跌</th><th>单位</th><th>日期</th><th>入库时间</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div id="chart"></div>
+  <script>
+    function formatDate(num) {
+      if (!num) return '';
+      const s = num.toString();
+      return s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6,8);
+    }
+    function loadData() {
+      const startDate = document.getElementById('startDate').value.replace(/-/g, '');
+      const endDate = document.getElementById('endDate').value.replace(/-/g, '');
+      const name = document.getElementById('name').value.trim();
+      let params = [];
+      if (startDate) params.push('startDate=' + startDate);
+      if (endDate) params.push('endDate=' + endDate);
+      if (name) params.push('name=' + encodeURIComponent(name));
+      let url = '/history-view/api' + (params.length ? '?' + params.join('&') : '');
+      fetch(url)
+        .then(r => r.json())
+        .then(function(result) {
+          const rows = result.data;
+          const tbody = document.querySelector('#dataTable tbody');
+          tbody.innerHTML = rows.map(function(row) {
+            return '<tr><td>' + row.id + '</td><td>' + row.name + '</td><td>' + row.priceRange + '</td><td>' + row.avgPrice + '</td><td>' + row.change + '</td><td>' + row.unit + '</td><td>' + formatDate(row.date) + '</td><td>' + row.created_at + '</td></tr>';
+          }).join('');
+          drawChart(rows);
+        });
+    }
+    function exportCSV() {
+      const rows = window._lastRows || [];
+      if (!rows.length) { alert('无数据可导出'); return; }
+      const header = ['ID','品名','区间','均价','涨跌','单位','日期','入库时间'];
+      const csv = [header.join(',')].concat(
+        rows.map(function(row) {
+          return [row.id,row.name,row.priceRange,row.avgPrice,row.change,row.unit,formatDate(row.date),row.created_at].join(',');
+        })
+      ).join('\r\n');
+      const blob = new Blob([csv], {type: 'text/csv'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'al_price_history.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+    function drawChart(rows) {
+      const chartDom = document.getElementById('chart');
+      const myChart = echarts.init(chartDom);
+      const data = rows.slice().reverse(); // 时间升序
+      myChart.setOption({
+        title: { text: '均价折线图', left: 'center' },
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'category', data: data.map(function(r){return formatDate(r.date);}) },
+        yAxis: { type: 'value', name: '均价' },
+        series: [{ name: '均价', type: 'line', data: data.map(function(r){return r.avgPrice;}) }]
+      });
+    }
+    document.getElementById('queryBtn').onclick = loadData;
+    document.getElementById('exportBtn').onclick = exportCSV;
+    loadData();
+  </script>
+</body>
+</html> 
